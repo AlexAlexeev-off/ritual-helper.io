@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Карта прощальных залов</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
+    <script>
+        function initMap() {
+            var map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 10,
+                center: {lat: 55.7558, lng: 37.6173}
+            });
+
+            var markers = {{ markers|tojson|safe }};
+            var mapMarkers = [];
+
+            markers.forEach(function(marker) {
+                var mark = new google.maps.Marker({
+                    position: {lat: marker.lat, lng: marker.lng},
+                    map: map,
+                    title: marker.title
+                });
+
+                var infoWindow = new google.maps.InfoWindow({
+                    content: '<h3>' + marker.title + '</h3><p>' + marker.info + '</p><button onclick="requestDetails(\'' + marker.title + '\')">Уточнить</button>'
+                });
+
+                mark.addListener('click', function() {
+                    infoWindow.open(map, mark);
+                });
+
+                mapMarkers.push({ marker: mark, info: marker });
+            });
+
+            document.getElementById('search').addEventListener('input', function() {
+                var searchValue = this.value.toLowerCase();
+                mapMarkers.forEach(function(item) {
+                    if (item.info.title.toLowerCase().includes(searchValue)) {
+                        item.marker.setMap(map);
+                    } else {
+                        item.marker.setMap(null);
+                    }
+                });
+            });
+        }
+
+        function requestDetails(title) {
+            fetch('/request-details', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'title=' + encodeURIComponent(title)
+            }).then(response => {
+                if (response.ok) {
+                    alert('Запрос отправлен!');
+                } else {
+                    alert('Ошибка при отправке запроса.');
+                }
+            });
+        }
+    </script>
+</head>
+<body onload="initMap()">
+    <h1>Карта прощальных залов</h1>
+    <input type="text" id="search" placeholder="Поиск по названию">
+    <div id="map" style="height: 500px; width: 100%;"></div>
+</body>
+</html>
